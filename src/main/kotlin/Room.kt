@@ -30,16 +30,16 @@ class Room(
 
     companion object {
         private const val SUCCESS = "ok"
+        private const val EDIT_WINDOW_SECONDS = 115
+        private const val MAX_CHAT_MESSAGE_LENGTH = 500
+        private const val WEB_SOCKET_RESTART_SECONDS = 30L
+        private const val NUMBER_OF_RETRIES_ON_THROTTLE = 5
         private val TRY_AGAIN_PATTERN = Pattern.compile("You can perform this action again in (\\d+) seconds")
         private val CURRENT_USERS_PATTERN = Pattern.compile("\\{id:\\s?(\\d+),")
         private val MARKDOWN_LINK_PATTERN = Pattern.compile("\\[(\\\\]|[^\\]])+\\]\\((https?:)?//(\\\\\\)|\\\\\\(|[^\\s)(])+\\)")
         private val FAILED_UPLOAD_PATTERN = Pattern.compile("var error = '(.+)';")
         private val SUCCESS_UPLOAD_PATTERN = Pattern.compile("var result = '(.+)';")
-        private const val NUMBER_OF_RETRIES_ON_THROTTLE = 5
         private val MESSAGE_TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneOffset.UTC)
-        private const val EDIT_WINDOW_SECONDS = 115
-        private const val WEB_SOCKET_RESTART_SECONDS = 30L
-        private const val MAX_CHAT_MESSAGE_LENGTH = 500
     }
 
     var messagePostedEventListener: ((MessagePostedEvent) -> Unit)? = null
@@ -67,24 +67,32 @@ class Room(
     private val currentUserIds = mutableSetOf<Long>()
 
     init {
-        executeAndSchedule(Runnable { fkey = retrieveFkey(roomId) }, 1)
-        executeAndSchedule(Runnable { syncPingableUsers() }, 24)
-
         syncCurrentUsers()
+        setUpRecurringTasks()
         initWebsocket()
+    }
 
-        executor.scheduleAtFixedRate({
-            if (ChronoUnit.SECONDS.between(lastWebsocketMessageDate, LocalDateTime.now()) > WEB_SOCKET_RESTART_SECONDS) {
-                closeWebSocket()
-                try {
-                    Thread.sleep(3000)
-                } catch (e: InterruptedException) {
-
-                }
-                initWebsocket()
+    private fun setUpRecurringTasks() {
+        executeAndSchedule(Runnable { fkey = retrieveFkey(roomId) }, 1, TimeUnit.HOURS)
+        executeAndSchedule(Runnable { syncPingableUsers() }, 24, TimeUnit.HOURS)
+        executeAndSchedule(Runnable {
+            if (ChronoUnit.SECONDS.between(lastWebsocketMessageDate, LocalDateTime.now()) <= WEB_SOCKET_RESTART_SECONDS) {
+                return@Runnable
             }
-        }, WEB_SOCKET_RESTART_SECONDS, WEB_SOCKET_RESTART_SECONDS,
-                TimeUnit.SECONDS)
+
+            resetWebSocket()
+
+        }, WEB_SOCKET_RESTART_SECONDS, TimeUnit.SECONDS)
+    }
+
+    private fun resetWebSocket() {
+        closeWebSocket()
+        try {
+            Thread.sleep(3000)
+        } catch (e: InterruptedException) {
+
+        }
+        initWebsocket()
     }
 
     private fun initWebsocket() {
@@ -137,9 +145,9 @@ class Room(
         }
     }
 
-    private fun executeAndSchedule(action: Runnable, rate: Long) {
+    private fun executeAndSchedule(action: Runnable, rate: Long, timeUnit: TimeUnit) {
         action.run()
-        executor.scheduleAtFixedRate(action, rate, rate, TimeUnit.HOURS)
+        executor.scheduleAtFixedRate(action, rate, rate, timeUnit)
     }
 
     private fun retrieveFkey(roomId: Int): String {
