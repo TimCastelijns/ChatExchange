@@ -8,7 +8,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
@@ -16,7 +15,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import java.util.regex.Pattern
@@ -408,7 +406,7 @@ class Room(
 
     fun togglePin(messageId: Long) =
             supplyAsync(Supplier {
-                val result = post("$hostUrlBase/messages/$messageId/owner-str").asString
+                val result = post("$hostUrlBase/messages/$messageId/owner-star").asString
                 if (SUCCESS != result) {
                     throw ChatOperationException("Cannot pin/unpin message $messageId for reason: $result")
                 }
