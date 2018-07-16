@@ -8,9 +8,8 @@ class StackExchangeClient(
     private val httpClient = HttpClient()
     private val cookies = HashMap<String, String>()
     private val rooms = mutableListOf<Room>()
-    private val autoCreateAccount = true
 
-    private fun seLogin(email: String, password: String, _host: String) {
+    private fun seLogin(email: String, password: String, _host: String, autoCreateAccount: Boolean = true) {
         var host = _host
         val originalHost = host
 
@@ -69,14 +68,7 @@ class StackExchangeClient(
 
     fun joinRoom(host: ChatHost, roomId: Int): Room {
         val mainSiteHost = host.hostName
-        var alreadyLoggedIn = false
-
-        rooms.forEach {
-            if (it.host == host) {
-                alreadyLoggedIn = true
-                return@forEach
-            }
-        }
+        val alreadyLoggedIn = rooms.any { it.host == host }
 
         if (!alreadyLoggedIn) {
             try {
@@ -86,7 +78,8 @@ class StackExchangeClient(
             }
         }
 
-        if (rooms.any { it.host == host && it.roomId == roomId }) {
+        val alreadyLoggedInToThisRoom = alreadyLoggedIn && rooms.any { it.roomId == roomId }
+        if (alreadyLoggedInToThisRoom) {
             throw ChatOperationException("Cannot join a room you are already in")
         }
 

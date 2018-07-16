@@ -271,6 +271,25 @@ class Room(
         return Message(messageId, user, plainContent, content, deleted, starCount, pinned, editCount)
     }
 
+    fun getPingableUsers() = getUsers(pingableUserIds)
+
+    private fun getThumbs(): RoomThumbs {
+        val json = try {
+            httpClient.get("$hostUrlBase/rooms/thumbs/$roomId", cookies).body()
+        } catch (e: IOException) {
+            throw ChatOperationException(e)
+        }
+
+        val jsonObject = JsonParser().parse(json).asJsonObject
+        val tags = Jsoup.parse(jsonObject.get("tags").asString).getElementsByTag("a").map {
+            it.html()
+        }
+
+        with(jsonObject) {
+            return RoomThumbs(get("id").asInt, get("name").asString, get("description").asString, get("isFavorite").asBoolean, tags)
+        }
+    }
+
     fun send(message: String): CompletionStage<Long> {
         val parts = message.toParts()
         for (i in 0 until parts.size) {
@@ -374,25 +393,6 @@ class Room(
         post("$hostUrlBase/chats/leave/$roomId", "quiet", quiet.toString())
         hasLeft = true
         close()
-    }
-
-    fun getPingableUsers() = getUsers(pingableUserIds)
-
-    private fun getThumbs(): RoomThumbs {
-        val json = try {
-            httpClient.get("$hostUrlBase/rooms/thumbs/$roomId", cookies).body()
-        } catch (e: IOException) {
-            throw ChatOperationException(e)
-        }
-
-        val jsonObject = JsonParser().parse(json).asJsonObject
-        val tags = Jsoup.parse(jsonObject.get("tags").asString).getElementsByTag("a").map {
-            it.html()
-        }
-
-        with(jsonObject) {
-            return RoomThumbs(get("id").asInt, get("name").asString, get("description").asString, get("isFavorite").asBoolean, tags)
-        }
     }
 
     private fun close() {
