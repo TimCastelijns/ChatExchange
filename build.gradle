@@ -2,8 +2,8 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.51'
 }
 
-group 'com.github.TimCastelijns'
-version '0.1'
+group = 'com.github.TimCastelijns'
+version = '0.1'
 
 apply plugin: 'java'
 
