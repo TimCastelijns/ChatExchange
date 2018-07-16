@@ -52,8 +52,7 @@ class Room(
     var userMentionedEventListener: ((UserMentionedEvent) -> Unit)? = null
     var messageRepliedToEventListener: ((MessageRepliedToEvent) -> Unit)? = null
 
-    private val executor = Executors.newSingleThreadScheduledExecutor()
-    private val eventExecutor = Executors.newCachedThreadPool()
+    private var scheduler = Scheduler()
 
     private lateinit var webSocket: WebSocket
     private var lastWebsocketMessageDate = LocalDateTime.now()
@@ -73,16 +72,13 @@ class Room(
     }
 
     private fun setUpRecurringTasks() {
-        executeAndSchedule(Runnable { fkey = retrieveFkey(roomId) }, 1, TimeUnit.HOURS)
-        executeAndSchedule(Runnable { syncPingableUsers() }, 24, TimeUnit.HOURS)
-        executeAndSchedule(Runnable {
-            if (ChronoUnit.SECONDS.between(lastWebsocketMessageDate, LocalDateTime.now()) <= WEB_SOCKET_RESTART_SECONDS) {
-                return@Runnable
+        scheduler.scheduleHourlyTask { fkey = retrieveFkey(roomId) }
+        scheduler.scheduleDailyTask { syncPingableUsers() }
+        scheduler.scheduleTaskWithCustomInterval(WEB_SOCKET_RESTART_SECONDS, TimeUnit.SECONDS) {
+            if (ChronoUnit.SECONDS.between(lastWebsocketMessageDate, LocalDateTime.now()) > WEB_SOCKET_RESTART_SECONDS) {
+                resetWebSocket()
             }
-
-            resetWebSocket()
-
-        }, WEB_SOCKET_RESTART_SECONDS, TimeUnit.SECONDS)
+        }
     }
 
     private fun resetWebSocket() {
@@ -138,11 +134,6 @@ class Room(
                 is MessageRepliedToEvent -> messageRepliedToEventListener?.invoke(event)
             }
         }
-    }
-
-    private fun executeAndSchedule(action: Runnable, rate: Long, timeUnit: TimeUnit) {
-        action.run()
-        executor.scheduleAtFixedRate(action, rate, rate, timeUnit)
     }
 
     private fun retrieveFkey(roomId: Int): String {
@@ -222,7 +213,7 @@ class Room(
     }
 
     private fun <T> supplyAsync(supplier: Supplier<T>) =
-            CompletableFuture.supplyAsync(supplier, executor)
+            CompletableFuture.supplyAsync(supplier, scheduler.executor)
                     .whenComplete { res, t ->
                         if (res != null) {
 
@@ -464,8 +455,7 @@ class Room(
     }
 
     private fun close() {
-        executor.shutdown()
-        eventExecutor.shutdown()
+        scheduler.shutDown()
         closeWebSocket()
     }
 
