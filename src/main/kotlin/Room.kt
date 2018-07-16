@@ -114,33 +114,28 @@ class Room(
 
     private fun handleChatEvent(json: String) {
         lastWebsocketMessageDate = LocalDateTime.now()
-        val jsonObject = JsonParser().parse(json).asJsonObject
-        val jsonArray = jsonObject.entrySet().filter { it.key.equals("r$roomId") }
-                .map { it.value }
-                .map { it.asJsonObject }
-                .mapNotNull { it.get("e") }
-                .map { it.asJsonArray }
-                .firstOrNull()
 
-        jsonArray?.let {
-            it.toEvents(this).forEach { event ->
-                when (event) {
-                    is MessagePostedEvent -> messagePostedEventListener?.invoke(event)
-                    is MessageEditedEvent -> messageEditedEventListener?.invoke(event)
-                    is MessageDeletedEvent -> messageDeletedEventListener?.invoke(event)
-                    is MessageStarredEvent -> messageStarredEventListener?.invoke(event)
-                    is UserEnteredEvent -> {
-                        currentUserIds += event.userId
-                        userEnteredEventListener?.invoke(event)
-                    }
-                    is UserLeftEvent -> {
-                        currentUserIds -= event.userId
-                        userLeftEventListener?.invoke(event)
-                    }
-                    is UserRequestedAccessEvent -> userRequestedAccessEventListener?.invoke(event)
-                    is UserMentionedEvent -> userMentionedEventListener?.invoke(event)
-                    is MessageRepliedToEvent -> messageRepliedToEventListener?.invoke(event)
+        val events = JsonParser().parse(json)
+                .asJsonObject
+                .extractEventsForRoom(this)
+
+        events.forEach { event ->
+            when (event) {
+                is MessagePostedEvent -> messagePostedEventListener?.invoke(event)
+                is MessageEditedEvent -> messageEditedEventListener?.invoke(event)
+                is MessageDeletedEvent -> messageDeletedEventListener?.invoke(event)
+                is MessageStarredEvent -> messageStarredEventListener?.invoke(event)
+                is UserEnteredEvent -> {
+                    currentUserIds += event.userId
+                    userEnteredEventListener?.invoke(event)
                 }
+                is UserLeftEvent -> {
+                    currentUserIds -= event.userId
+                    userLeftEventListener?.invoke(event)
+                }
+                is UserRequestedAccessEvent -> userRequestedAccessEventListener?.invoke(event)
+                is UserMentionedEvent -> userMentionedEventListener?.invoke(event)
+                is MessageRepliedToEvent -> messageRepliedToEventListener?.invoke(event)
             }
         }
     }
