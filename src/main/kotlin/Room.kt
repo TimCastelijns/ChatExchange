@@ -230,24 +230,14 @@ class Room(
         val ids = userIds.joinToString(separator = ",") { it.toString() }
 
         return post("$hostUrlBase/user/info", "ids", ids, "roomId", roomId.toString())
-                .asJsonObject.get("users")
-                .asJsonArray
-                .map { it.asJsonObject }
+                .asJsonObject
+                .extractUsers()
                 .map {
-                    val user = with(it) {
-                        val id = get("id").asLong
-                        val userName = get("name").asString
-                        val reputation = get("reputation").asInt
-                        val isModerator = if (get("is_moderator").isJsonNull) false else get("is_moderator").asBoolean
-                        val isRoomOwner = if (get("is_owner").isJsonNull) false else get("is_owner").asBoolean
-                        val lastSeen = if (get("last_seen").isJsonNull) null else Instant.ofEpochSecond(get("last_seen").asLong)
-                        val lastPost = if (get("last_post").isJsonNull) null else Instant.ofEpochSecond(get("last_post").asLong)
-                        val currentlyInRoom = currentUserIds.contains(id)
-                        val profileLink = "$hostUrlBase/users/$id"
-
-                        User(id, userName, reputation, isModerator, isRoomOwner, lastSeen, lastPost, currentlyInRoom, profileLink)
+                    it.apply {
+                        isCurrentlyInRoom = currentUserIds.contains(id)
+                        profileLink = "$hostUrlBase/users/$id"
                     }
-                    user
+                    it
                 }
     }
 

@@ -1,5 +1,24 @@
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import java.time.Instant
+
+internal fun JsonObject.extractUsers(): List<User> =
+        get("users")
+                .asJsonArray
+                .map { it.asJsonObject }
+                .map {
+                    with(this) {
+                        val id = get("id").asLong
+                        val userName = get("name").asString
+                        val reputation = get("reputation").asInt
+                        val isModerator = if (get("is_moderator").isJsonNull) false else get("is_moderator").asBoolean
+                        val isRoomOwner = if (get("is_owner").isJsonNull) false else get("is_owner").asBoolean
+                        val lastSeen = if (get("last_seen").isJsonNull) null else Instant.ofEpochSecond(get("last_seen").asLong)
+                        val lastPost = if (get("last_post").isJsonNull) null else Instant.ofEpochSecond(get("last_post").asLong)
+
+                        User(id, userName, reputation, isModerator, isRoomOwner, lastSeen, lastPost)
+                    }
+                }
 
 internal fun JsonObject.extractEventsForRoom(room: Room): List<Event> =
         entrySet()
@@ -18,6 +37,7 @@ private fun JsonArray.toEvents(room: Room): List<Event> {
     }
 
     // TODO: handle feeds (userId = -2)
+    // TODO: handle unhandled events
     return map { it.asJsonObject }
             .filter {
                 (!it.has("user_id") || it.get("user_id").asLong > 0) &&

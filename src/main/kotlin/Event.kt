@@ -91,6 +91,6 @@ data class User(
         val isRoomOwner: Boolean,
         val dateLastSeen: Instant?,
         val dateLastMessage: Instant?,
-        val isCurrentlyInRoom: Boolean,
-        val profileLink: String
+        var isCurrentlyInRoom: Boolean = false,
+        var profileLink: String = ""
 )
