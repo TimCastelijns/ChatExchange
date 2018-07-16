@@ -29,12 +29,10 @@ class Room(
     companion object {
         private const val SUCCESS = "ok"
         private const val EDIT_WINDOW_SECONDS = 115
-        private const val MAX_CHAT_MESSAGE_LENGTH = 500
         private const val WEB_SOCKET_RESTART_SECONDS = 30L
         private const val NUMBER_OF_RETRIES_ON_THROTTLE = 5
         private val TRY_AGAIN_PATTERN = Pattern.compile("You can perform this action again in (\\d+) seconds")
         private val CURRENT_USERS_PATTERN = Pattern.compile("\\{id:\\s?(\\d+),")
-        private val MARKDOWN_LINK_PATTERN = Pattern.compile("\\[(\\\\]|[^\\]])+\\]\\((https?:)?//(\\\\\\)|\\\\\\(|[^\\s)(])+\\)")
         private val FAILED_UPLOAD_PATTERN = Pattern.compile("var error = '(.+)';")
         private val SUCCESS_UPLOAD_PATTERN = Pattern.compile("var result = '(.+)';")
         private val MESSAGE_TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneOffset.UTC)
@@ -274,7 +272,7 @@ class Room(
     }
 
     fun send(message: String): CompletionStage<Long> {
-        val parts = toParts(message, MAX_CHAT_MESSAGE_LENGTH)
+        val parts = message.toParts()
         for (i in 0 until parts.size) {
             val part = parts[i]
             supplyAsync(Supplier {
@@ -328,51 +326,6 @@ class Room(
 
                 throw ChatOperationException("Failed to upload image")
             })
-
-    private fun toParts(_message: String, maxPartLength: Int): List<String> {
-        var message = _message
-        if (message.length <= maxPartLength || (message.trim().contains("\n") && !message.trim().endsWith("\n"))) {
-            return listOf(message)
-        }
-
-        val messages = mutableListOf<String>()
-        while (message.length > maxPartLength) {
-            val nonBreakingIndices = message.identifyNonBreakingIndexes()
-            var breakIndex = message.lastIndexOf(' ', maxPartLength)
-            if (breakIndex < 0) {
-                breakIndex = maxPartLength
-            }
-
-            nonBreakingIndices.forEach {
-                if (it[0] < breakIndex && breakIndex < it[1]) {
-                    breakIndex = it[0] - 1
-                    return@forEach
-                }
-            }
-            if (breakIndex < 0) {
-                // we did our best, but this part starts with a non breaking index, and ends further than what is allowed...
-                throw ChatOperationException("Cannot send message: it is longer than $maxPartLength characters and cannot be broken into adequate parts")
-            }
-
-            messages.add(message.substring(0, breakIndex))
-            message = message.substring(breakIndex + 1)
-        }
-        if (!message.isEmpty()) {
-            messages.add(message)
-        }
-        return messages
-    }
-
-    private fun String.identifyNonBreakingIndexes(): List<IntArray> {
-        val nonBreakingParts = mutableListOf<IntArray>()
-        val matcher = MARKDOWN_LINK_PATTERN.matcher(this)
-
-        while (matcher.find()) {
-            nonBreakingParts.add(intArrayOf(matcher.start(), matcher.end()))
-        }
-
-        return nonBreakingParts
-    }
 
     fun replyTo(messageId: Long, message: String) = send(":$messageId $message")
 
