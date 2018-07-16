@@ -1,16 +1,11 @@
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import org.glassfish.tyrus.client.ClientManager
-import org.glassfish.tyrus.client.ClientProperties
-import org.glassfish.tyrus.container.jdk.client.JdkClientContainer
 import org.jsoup.HttpStatusException
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
 import java.io.IOException
 import java.io.InputStream
-import java.net.URI
-import java.net.URISyntaxException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
@@ -25,7 +20,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import java.util.regex.Pattern
-import javax.websocket.*
 
 class Room(
         val host: ChatHost,
@@ -61,7 +55,7 @@ class Room(
     private val executor = Executors.newSingleThreadScheduledExecutor()
     private val eventExecutor = Executors.newCachedThreadPool()
 
-    private lateinit var websocketSession: Session
+    private lateinit var webSocket: WebSocket
     private var lastWebsocketMessageDate = LocalDateTime.now()
 
     private lateinit var fkey: String
@@ -75,11 +69,13 @@ class Room(
     init {
         executeAndSchedule(Runnable { fkey = retrieveFkey(roomId) }, 1)
         executeAndSchedule(Runnable { syncPingableUsers() }, 24)
+
         syncCurrentUsers()
         initWebsocket()
+
         executor.scheduleAtFixedRate({
             if (ChronoUnit.SECONDS.between(lastWebsocketMessageDate, LocalDateTime.now()) > WEB_SOCKET_RESTART_SECONDS) {
-                closeWebsocket()
+                closeWebSocket()
                 try {
                     Thread.sleep(3000)
                 } catch (e: InterruptedException) {
@@ -89,6 +85,23 @@ class Room(
             }
         }, WEB_SOCKET_RESTART_SECONDS, WEB_SOCKET_RESTART_SECONDS,
                 TimeUnit.SECONDS)
+    }
+
+    private fun initWebsocket() {
+        var webSocketUrl = post("$hostUrlBase/ws-auth", "roomid",
+                roomId.toString())
+                .asJsonObject
+                .get("url").asString
+
+        val time = post("$hostUrlBase/chats/$roomId/events")
+                .asJsonObject
+                .get("time").asString
+
+        webSocketUrl = "$webSocketUrl?l=$time"
+
+        webSocket = WebSocket(hostUrlBase)
+        webSocket.chatEventListener = { handleChatEvent(it) }
+        webSocket.open(webSocketUrl)
     }
 
     private fun handleChatEvent(json: String) {
@@ -167,51 +180,6 @@ class Room(
         }
     }
 
-    private fun initWebsocket() {
-        var websocketUrl: String
-        try {
-            websocketUrl = post("$hostUrlBase/ws-auth", "roomid",
-                    roomId.toString())
-                    .asJsonObject
-                    .get("url").asString
-            val time = post("$hostUrlBase/chats/$roomId/events")
-                    .asJsonObject
-                    .get("time").asString
-            websocketUrl += "?l=$time"
-        } catch (e: ChatOperationException) {
-            return
-        }
-
-        val client = ClientManager.createClient(JdkClientContainer::class.java.name)
-        val configBuilder = ClientEndpointConfig.Builder.create()
-        configBuilder.configurator(object : ClientEndpointConfig.Configurator() {
-            override fun beforeRequest(headers: MutableMap<String, MutableList<String>>?) {
-                val list = mutableListOf<String>()
-                list.add(hostUrlBase)
-                headers?.put("Origin", list)
-            }
-        })
-
-        client.properties[ClientProperties.RETRY_AFTER_SERVICE_UNAVAILABLE] = true
-        try {
-            websocketSession = client.connectToServer(object : Endpoint() {
-                override fun onOpen(session: Session?, config: EndpointConfig?) {
-                    session?.addMessageHandler(String::class.java, ::handleChatEvent)
-                }
-
-                override fun onError(session: Session?, thr: Throwable?) {
-
-                }
-            }, configBuilder.build(), URI(websocketUrl))
-        } catch (e: DeploymentException) {
-            throw ChatOperationException("Cannot connect to chat websocket", e)
-        } catch (e: URISyntaxException) {
-            throw ChatOperationException("Cannot connect to chat websocket", e)
-        } catch (e: IOException) {
-            throw ChatOperationException("Cannot connect to chat websocket", e)
-        }
-    }
-
     private fun post(url: String, vararg data: String) =
             post(NUMBER_OF_RETRIES_ON_THROTTLE, url, *data)
 
@@ -248,14 +216,6 @@ class Room(
         dataWithFkey[1] = (fkey)
         System.arraycopy(data, 0, dataWithFkey, 2, data.size)
         return dataWithFkey
-    }
-
-    private fun closeWebsocket() {
-        try {
-            websocketSession.close()
-        } catch (e: IOException) {
-
-        }
     }
 
     private fun <T> supplyAsync(supplier: Supplier<T>) =
@@ -481,12 +441,6 @@ class Room(
         close()
     }
 
-    private fun close() {
-        executor.shutdown()
-        eventExecutor.shutdown()
-        closeWebsocket()
-    }
-
     fun getPingableUsers() = getUsers(pingableUserIds)
 
     private fun getThumbs(): RoomThumbs {
@@ -504,6 +458,16 @@ class Room(
         with(jsonObject) {
             return RoomThumbs(get("id").asInt, get("name").asString, get("description").asString, get("isFavorite").asBoolean, tags)
         }
+    }
+
+    private fun close() {
+        executor.shutdown()
+        eventExecutor.shutdown()
+        closeWebSocket()
+    }
+
+    private fun closeWebSocket() {
+        webSocket.close()
     }
 
 }
