@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 class ChatOperationException : RuntimeException {
 
     constructor(message: String) : super(message)

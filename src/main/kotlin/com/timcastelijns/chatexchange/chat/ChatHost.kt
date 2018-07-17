@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 enum class ChatHost(val hostName: String) {
 
     STACK_OVERFLOW("stackoverflow.com"),
