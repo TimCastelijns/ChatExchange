@@ -8,7 +8,7 @@ internal fun JsonObject.extractUsers(): List<User> =
                 .asJsonArray
                 .map { it.asJsonObject }
                 .map {
-                    with(this) {
+                    with(it) {
                         val id = get("id").asLong
                         val userName = get("name").asString
                         val reputation = get("reputation").asInt
