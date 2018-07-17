@@ -18,7 +18,8 @@ internal class Scheduler {
 
     private fun schedule(action: Runnable, rate: Long, timeUnit: TimeUnit, andExecute: Boolean) {
         if (andExecute) {
-            executor.scheduleAtFixedRate(action, 0, rate, timeUnit)
+            action.run()
+            executor.scheduleAtFixedRate(action, rate, rate, timeUnit)
         } else {
             executor.scheduleAtFixedRate(action, rate, rate, timeUnit)
         }
