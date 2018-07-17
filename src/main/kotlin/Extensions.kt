@@ -53,7 +53,7 @@ private fun JsonArray.toEvents(room: Room): List<Event> {
                     StackExchangeEventType.USER_ENTERED -> UserEnteredEvent(it, room)
                     StackExchangeEventType.USER_LEFT -> UserLeftEvent(it, room)
                     StackExchangeEventType.USER_MENTIONED -> UserMentionedEvent(it, room)
-                    StackExchangeEventType.USER_REQUESTED_ACCESS -> UserRequestedAccessEvent(it, room)
+                    StackExchangeEventType.USER_NOTIFICATION -> UserNotificationEvent(it, room)
                     StackExchangeEventType.MESSAGE_REPLY -> MessageRepliedToEvent(it, room)
                     else -> {
                         println("Unhandled event: $it")

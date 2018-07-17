@@ -44,7 +44,7 @@ class Room(
     var messageStarredEventListener: ((MessageStarredEvent) -> Unit)? = null
     var userEnteredEventListener: ((UserEnteredEvent) -> Unit)? = null
     var userLeftEventListener: ((UserLeftEvent) -> Unit)? = null
-    var userRequestedAccessEventListener: ((UserRequestedAccessEvent) -> Unit)? = null
+    var userNotificationEventListener: ((UserNotificationEvent) -> Unit)? = null
     var userMentionedEventListener: ((UserMentionedEvent) -> Unit)? = null
     var messageRepliedToEventListener: ((MessageRepliedToEvent) -> Unit)? = null
 
@@ -88,8 +88,7 @@ class Room(
     }
 
     private fun initWebsocket() {
-        var webSocketUrl = post("$hostUrlBase/ws-auth", "roomid",
-                roomId.toString())
+        var webSocketUrl = post("$hostUrlBase/ws-auth", "roomid", roomId.toString())
                 .asJsonObject
                 .get("url").asString
 
@@ -125,7 +124,7 @@ class Room(
                     currentUserIds -= event.userId
                     userLeftEventListener?.invoke(event)
                 }
-                is UserRequestedAccessEvent -> userRequestedAccessEventListener?.invoke(event)
+                is UserNotificationEvent -> userNotificationEventListener?.invoke(event)
                 is UserMentionedEvent -> userMentionedEventListener?.invoke(event)
                 is MessageRepliedToEvent -> messageRepliedToEventListener?.invoke(event)
             }

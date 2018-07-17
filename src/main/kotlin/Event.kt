@@ -61,7 +61,15 @@ class UserEnteredEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement
 
 class UserLeftEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room)
 
-class UserRequestedAccessEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room)
+class UserNotificationEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room) {
+
+    val content: String
+
+    init {
+        val jsonObject = jsonElement.asJsonObject
+        content = jsonObject.get("content").asString
+    }
+}
 
 class UserMentionedEvent(jsonElement: JsonElement, room: Room) : PingMessageEvent(jsonElement, room)
 

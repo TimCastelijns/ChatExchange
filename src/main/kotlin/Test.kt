@@ -45,8 +45,8 @@ fun main(args: Array<String>) {
         println("User mentioned: ${it.userName}")
     }
 
-    room.userRequestedAccessEventListener = {
-        println("User requested access: ${it.userName}")
+    room.userNotificationEventListener = {
+        println("User notification: ${it.content}")
     }
 
     client.use { _ ->
