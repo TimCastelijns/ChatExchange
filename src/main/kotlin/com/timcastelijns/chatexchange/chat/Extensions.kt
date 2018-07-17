@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import java.time.Instant

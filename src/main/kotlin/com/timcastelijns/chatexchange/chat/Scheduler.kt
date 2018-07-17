@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 

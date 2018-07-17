@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 internal enum class StackExchangeEventType(val code: Int) {
 
     MESSAGE_POSTED(1),

@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 import java.io.IOException
 
 class StackExchangeClient(

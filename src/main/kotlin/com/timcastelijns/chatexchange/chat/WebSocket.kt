@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 import org.glassfish.tyrus.client.ClientManager
 import org.glassfish.tyrus.client.ClientProperties
 import org.glassfish.tyrus.container.jdk.client.JdkClientContainer

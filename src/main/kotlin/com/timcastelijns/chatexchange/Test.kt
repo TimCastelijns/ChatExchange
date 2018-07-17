@@ -1,3 +1,7 @@
+package com.timcastelijns.chatexchange
+
+import com.timcastelijns.chatexchange.chat.ChatHost
+import com.timcastelijns.chatexchange.chat.StackExchangeClient
 import java.io.FileInputStream
 import java.util.*
 import java.util.concurrent.CountDownLatch

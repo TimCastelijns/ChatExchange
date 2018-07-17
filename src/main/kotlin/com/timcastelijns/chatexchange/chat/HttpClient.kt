@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 import org.jsoup.Connection
 import org.jsoup.Jsoup
 import java.io.InputStream

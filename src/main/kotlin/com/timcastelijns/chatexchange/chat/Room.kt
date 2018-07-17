@@ -1,3 +1,5 @@
+package com.timcastelijns.chatexchange.chat
+
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import org.jsoup.HttpStatusException
