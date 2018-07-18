@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'com.github.TimCastelijns'
-version = '1.0.0-alpha2'
+version = '1.0.0-alpha3'
 
 apply plugin: 'java'
 
