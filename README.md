@@ -1,3 +1,5 @@
+[![](https://jitpack.io/v/TimCastelijns/ChatExchange.svg)](https://jitpack.io/#TimCastelijns/ChatExchange)
+
 # ChatExchange
 
 Kotlin API for StackExchange chat
@@ -6,6 +8,28 @@ This is a kotlin port of [ChatExchange](https://github.com/SOBotics/chatexchange
 
 Structurally it is almost completely the same as the original, hence all credit for that goes to original creator(s) and maintainer(s)
 of that project, most notably [Tunaki](https://github.com/Tunaki/).
+
+## Gradle dependency
+
+Add the Jitpack repository:
+
+    repositories {
+	        maven { url 'https://jitpack.io' }
+    }
+
+Add the dependency:
+
+    dependencies {
+        compile 'com.github.TimCastelijns:ChatExchange:version'
+    }
+
+Where `version` should be equal to that of the jitpack badge above.
+
+Older versions can be found [here](https://jitpack.io/#TimCastelijns/ChatExchange).
+
+## How to use
+
+TBD
 
 ## Status
 
