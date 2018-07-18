@@ -63,13 +63,20 @@ class UserEnteredEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement
 
 class UserLeftEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room)
 
-class UserNotificationEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room) {
+class UserNotificationEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room)
 
-    val content: String
+class AccessLevelChangedEvent(jsonElement: JsonElement, room: Room) : Event(jsonElement, room) {
+
+    val accessLevel: AccessLevel
+    val targetUserId: Long
+    val targetUser: User
 
     init {
         val jsonObject = jsonElement.asJsonObject
-        content = jsonObject.get("content").asString
+        val content = jsonObject.get("content").asString
+        accessLevel = AccessLevel.fromAlias(content.split(" ")[2])
+        targetUserId = jsonObject.get("target_user_id").asLong
+        targetUser = room.getUser(targetUserId)
     }
 }
 
@@ -103,3 +110,18 @@ data class User(
         var isCurrentlyInRoom: Boolean = false,
         var profileLink: String = ""
 )
+
+enum class AccessLevel(val alias: String) {
+
+    REQUEST("request"),
+    READ_WRITE("read-write"),
+    READ("read"),
+    DEFAULT("(default)");
+
+    companion object {
+
+        fun fromAlias(alias: String) = AccessLevel.values()
+                .first { it.alias == alias }
+    }
+
+}

@@ -49,6 +49,7 @@ class Room(
     var userNotificationEventListener: ((UserNotificationEvent) -> Unit)? = null
     var userMentionedEventListener: ((UserMentionedEvent) -> Unit)? = null
     var messageRepliedToEventListener: ((MessageRepliedToEvent) -> Unit)? = null
+    var accessLevelChangedEventListener: ((AccessLevelChangedEvent) -> Unit)? = null
 
     private var scheduler = Scheduler()
 
@@ -129,6 +130,7 @@ class Room(
                 is UserNotificationEvent -> userNotificationEventListener?.invoke(event)
                 is UserMentionedEvent -> userMentionedEventListener?.invoke(event)
                 is MessageRepliedToEvent -> messageRepliedToEventListener?.invoke(event)
+                is AccessLevelChangedEvent -> accessLevelChangedEventListener?.invoke(event)
             }
         }
     }

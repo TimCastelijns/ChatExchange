@@ -50,7 +50,11 @@ fun main(args: Array<String>) {
     }
 
     room.userNotificationEventListener = {
-        println("User notification: ${it.content}")
+        println("User notification: $it")
+    }
+
+    room.accessLevelChangedEventListener = {
+        println("Access level changed: ${it.targetUser.name} level is now: ${it.accessLevel}. Action was initiated by ${it.userName}")
     }
 
     client.use { _ ->
