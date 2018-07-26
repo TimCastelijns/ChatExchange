@@ -96,7 +96,8 @@ data class Message(
         val isDeleted: Boolean,
         val starCount: Int,
         val isPinned: Boolean,
-        val editCount: Int
+        val editCount: Int,
+        val isReply: Boolean
 )
 
 data class User(
