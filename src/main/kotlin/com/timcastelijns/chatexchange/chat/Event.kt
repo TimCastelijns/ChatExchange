@@ -26,6 +26,8 @@ open class MessageEvent(jsonElement: JsonElement, room: Room) : Event(jsonElemen
     init {
         val jsonObject = jsonElement.asJsonObject
         message = room.getMessage(jsonObject.get("message_id").asLong)
+        parentMessageId = jsonObject.get("parent_id")?.asLong ?: -1
+        isReply = parentMessageId != -1
     }
 }
 
@@ -96,7 +98,9 @@ data class Message(
         val isDeleted: Boolean,
         val starCount: Int,
         val isPinned: Boolean,
-        val editCount: Int
+        val editCount: Int,
+        val parentMessageId: Long,
+        val isReply: Boolean
 )
 
 data class User(
