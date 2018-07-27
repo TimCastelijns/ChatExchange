@@ -20,7 +20,7 @@ Add the Jitpack repository:
 Add the dependency:
 
     dependencies {
-        compile 'com.github.TimCastelijns:ChatExchange:version'
+        implementation 'com.github.TimCastelijns:ChatExchange:version'
     }
 
 Where `version` should be equal to that of the jitpack badge above.
