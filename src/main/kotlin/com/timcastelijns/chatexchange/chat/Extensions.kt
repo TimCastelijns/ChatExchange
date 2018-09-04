@@ -44,7 +44,7 @@ private fun JsonArray.toEvents(room: Room): List<Event> {
     return map { it.asJsonObject }
             .filter {
                 (!it.has("user_id") || it.get("user_id").asLong > 0) &&
-                        it.get("room_id").asInt == room.roomId
+                        it.get("room_id")?.asInt == room.roomId
             }
             .mapNotNull {
                 when (StackExchangeEventType.fromCode(it.get("event_type").asInt)) {
