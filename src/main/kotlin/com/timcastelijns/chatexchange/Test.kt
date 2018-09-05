@@ -1,6 +1,8 @@
 package com.timcastelijns.chatexchange
 
 import com.timcastelijns.chatexchange.chat.ChatHost
+import com.timcastelijns.chatexchange.chat.Fkey
+import com.timcastelijns.chatexchange.chat.FkeyListener
 import com.timcastelijns.chatexchange.chat.StackExchangeClient
 import java.io.FileInputStream
 import java.util.*
@@ -12,7 +14,13 @@ fun main(args: Array<String>) {
         properties.load(it)
     }
 
-    val client = StackExchangeClient(properties.getProperty("email"), properties.getProperty("password"))
+    val fkeyListener = object : FkeyListener {
+        override fun onFkey(fkey: Fkey) {
+            println("onFkey: ${fkey.value}")
+        }
+    }
+
+    val client = StackExchangeClient(properties.getProperty("email"), properties.getProperty("password"), fkeyListener)
     val roomIdSandbox = 1
     val countDownLatch = CountDownLatch(1)
     val room = client.joinRoom(ChatHost.STACK_OVERFLOW, roomIdSandbox)
