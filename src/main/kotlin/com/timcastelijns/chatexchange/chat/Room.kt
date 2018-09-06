@@ -10,7 +10,6 @@ import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
@@ -26,8 +25,7 @@ class Room(
         val host: ChatHost,
         val roomId: Int,
         private val httpClient: HttpClient,
-        private val cookies: MutableMap<String, String>,
-        private val fkeyListener: FkeyListener?
+        private val cookies: MutableMap<String, String>
 ) {
 
     companion object {
@@ -73,10 +71,7 @@ class Room(
     }
 
     private fun setUpRecurringTasks() {
-        scheduler.scheduleHourlyTask {
-            fkey = retrieveFkey(roomId)
-            fkeyListener?.onFkey(Fkey(fkey, Instant.now()))
-        }
+        scheduler.scheduleHourlyTask { fkey = retrieveFkey(roomId) }
         scheduler.scheduleDailyTask { syncPingableUsers() }
         scheduler.scheduleTaskWithCustomInterval(WEB_SOCKET_RESTART_SECONDS, TimeUnit.SECONDS) {
             if (ChronoUnit.SECONDS.between(lastWebsocketMessageDate, LocalDateTime.now()) > WEB_SOCKET_RESTART_SECONDS) {

@@ -1,12 +1,10 @@
 package com.timcastelijns.chatexchange.chat
 
 import java.io.IOException
-import java.time.Instant
 
 class StackExchangeClient(
         private val email: String,
-        private val password: String,
-        val fkeyListener: FkeyListener? = null
+        private val password: String
 ) : AutoCloseable {
 
     private val httpClient = HttpClient()
@@ -25,8 +23,6 @@ class StackExchangeClient(
         val fkey = response.parse()
                 .select("input[name='fkey']")
                 .`val`()
-
-        fkeyListener?.onFkey(Fkey(fkey, Instant.now()))
 
         response = httpClient.post("https://$host/users/login", cookies,
                 "email", email, "password", password, "fkey", fkey)
@@ -89,7 +85,7 @@ class StackExchangeClient(
             throw ChatOperationException("Cannot join a room you are already in")
         }
 
-        val chatRoom = Room(host, roomId, httpClient, cookies, fkeyListener)
+        val chatRoom = Room(host, roomId, httpClient, cookies)
         rooms.add(chatRoom)
         println("Joined room $roomId")
         return chatRoom
@@ -102,11 +98,3 @@ class StackExchangeClient(
     }
 
 }
-
-interface FkeyListener {
-
-    fun onFkey(fkey: Fkey)
-
-}
-
-data class Fkey(val value: String, val timestamp: Instant)
