@@ -388,6 +388,20 @@ class Room(
                 return@Supplier null
             })
 
+    /**
+     * @param accessLevel 'remove' for default, 'read-write' for write and 'read-only' for read.
+     */
+    fun setUserAccess(userId: Long, accessLevel: String): CompletionStage<Nothing?> =
+            supplyAsync(Supplier {
+                val result = post("$hostUrlBase/rooms/setuseraccess/$roomId",
+                        "aclUserId", userId.toString(),
+                        "userAccess", accessLevel).asString
+                if (SUCCESS != result) {
+                    throw ChatOperationException("Cannot alter userAccess for reason: $result")
+                }
+                return@Supplier null
+            })
+
     fun leave(quiet: Boolean = true) {
         if (hasLeft) {
             return
