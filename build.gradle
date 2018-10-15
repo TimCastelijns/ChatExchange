@@ -18,12 +18,16 @@ repositories {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+
+    implementation 'org.koin:koin-core:1.0.1'
 
     implementation 'org.jsoup:jsoup:1.11.3'
     implementation 'javax.websocket:javax.websocket-api:1.1'
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.7'
     implementation 'org.glassfish.tyrus.bundles:tyrus-standalone-client-jdk:1.13.1'
+
+    // Testing
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
 compileKotlin {
