@@ -2,9 +2,9 @@ package com.timcastelijns.chatexchange
 
 import com.timcastelijns.chatexchange.chat.ChatHost
 import com.timcastelijns.chatexchange.chat.StackExchangeClient
+import kotlinx.coroutines.experimental.launch
 import java.io.FileInputStream
 import java.util.*
-import java.util.concurrent.CountDownLatch
 
 fun main(args: Array<String>) {
     val properties = Properties()
@@ -13,8 +13,7 @@ fun main(args: Array<String>) {
     }
 
     val client = StackExchangeClient(properties.getProperty("email"), properties.getProperty("password"))
-    val roomIdSandbox = 1
-    val countDownLatch = CountDownLatch(1)
+    val roomIdSandbox = 15
     val room = client.joinRoom(ChatHost.STACK_OVERFLOW, roomIdSandbox)
 
     room.messagePostedEventListener = {
@@ -57,7 +56,16 @@ fun main(args: Array<String>) {
         println("Access level changed: ${it.targetUser.name} level is now: ${it.accessLevel}. Action was initiated by ${it.userName}")
     }
 
-    client.use { _ ->
-        countDownLatch.await()
+    print("Send message by typing in the console directly. Hit enter to send.")
+    while (true) {
+        val message = readLine()
+        if (message == "q") {
+            break
+        }
+        launch {
+            room.send(message!!)
+        }
     }
+
+    client.close()
 }
