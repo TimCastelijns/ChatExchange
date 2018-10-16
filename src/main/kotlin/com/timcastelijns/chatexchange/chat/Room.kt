@@ -23,9 +23,7 @@ import java.util.regex.Pattern
 
 class Room(
         val host: ChatHost,
-        val roomId: Int,
-        private val httpClient: HttpClient,
-        private val cookies: MutableMap<String, String>
+        val roomId: Int
 ) {
 
     companion object {
@@ -137,7 +135,7 @@ class Room(
 
     private fun retrieveFkey(roomId: Int): String {
         try {
-            val response = httpClient.get("$hostUrlBase/rooms/$roomId", cookies)
+            val response = HttpClient.get("$hostUrlBase/rooms/$roomId")
             return response.parse().getElementById("fkey").`val`()
         } catch (e: IOException) {
             throw ChatOperationException(e)
@@ -146,7 +144,7 @@ class Room(
 
     private fun syncPingableUsers() {
         val json = try {
-            httpClient.get("$hostUrlBase/rooms/pingable/$roomId", cookies)
+            HttpClient.get("$hostUrlBase/rooms/pingable/$roomId")
                     .body()
         } catch (e: IOException) {
             throw ChatOperationException(e)
@@ -158,7 +156,7 @@ class Room(
 
     private fun syncCurrentUsers() {
         val document = try {
-            httpClient.get("$hostUrlBase/rooms/$roomId", cookies)
+            HttpClient.get("$hostUrlBase/rooms/$roomId")
                     .parse()
         } catch (e: IOException) {
             throw ChatOperationException(e)
@@ -178,7 +176,7 @@ class Room(
 
     private fun post(retryCount: Int, url: String, vararg data: String): JsonElement {
         val response = try {
-            httpClient.postIgnoringErrors(url, cookies, *withFkey(arrayOf(*data)))
+            HttpClient.postIgnoringErrors(url, *withFkey(arrayOf(*data)))
         } catch (e: IOException) {
             throw ChatOperationException(e)
         }
@@ -244,8 +242,8 @@ class Room(
         val documentHistory: Document
         val content: String
         try {
-            documentHistory = httpClient.get("$hostUrlBase/messages/$messageId/history", cookies, "fkey", fkey).parse()
-            content = Parser.unescapeEntities(httpClient.get("$hostUrlBase/message/$messageId", cookies, "fkey", fkey).body(), false)
+            documentHistory = HttpClient.get("$hostUrlBase/messages/$messageId/history", "fkey", fkey).parse()
+            content = Parser.unescapeEntities(HttpClient.get("$hostUrlBase/message/$messageId", "fkey", fkey).body(), false)
         } catch (e: HttpStatusException) {
             if (e.statusCode == 404) {
                 // non-RO cannot see deleted message of another user: so if 404, it means message is deleted
@@ -278,7 +276,7 @@ class Room(
 
     private fun getThumbs(): RoomThumbs {
         val json = try {
-            httpClient.get("$hostUrlBase/rooms/thumbs/$roomId", cookies).body()
+            HttpClient.get("$hostUrlBase/rooms/thumbs/$roomId").body()
         } catch (e: IOException) {
             throw ChatOperationException(e)
         }
@@ -329,7 +327,7 @@ class Room(
     private fun uploadImage(fileName: String, inputStream: InputStream): CompletionStage<String> =
             supplyAsync(Supplier {
                 val response = try {
-                    httpClient.postWithFile("$hostUrlBase/upload/image", cookies, "filename", fileName, inputStream)
+                    HttpClient.postWithFile("$hostUrlBase/upload/image", "filename", fileName, inputStream)
                 } catch (e: IOException) {
                     throw ChatOperationException("Failed to upload image", e)
                 }
@@ -353,7 +351,7 @@ class Room(
 
     fun isEditable(messageId: Long): Boolean {
         try {
-            val documentHistory = httpClient.get("$hostUrlBase/messages/$messageId/history", cookies, "fkey", fkey).parse()
+            val documentHistory = HttpClient.get("$hostUrlBase/messages/$messageId/history", "fkey", fkey).parse()
             val time = LocalTime.parse(documentHistory.getElementsByClass("timestamp").last().html(), MESSAGE_TIME_FORMATTER)
             return ChronoUnit.SECONDS.between(time, LocalTime.now(ZoneOffset.UTC)) < EDIT_WINDOW_SECONDS
         } catch (e: IOException) {

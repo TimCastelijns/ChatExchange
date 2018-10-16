@@ -7,8 +7,6 @@ class StackExchangeClient(
         private val password: String
 ) : AutoCloseable {
 
-    private val httpClient = HttpClient()
-    private val cookies = HashMap<String, String>()
     private val rooms = mutableListOf<Room>()
 
     private fun seLogin(email: String, password: String, _host: String, autoCreateAccount: Boolean = true) {
@@ -19,12 +17,12 @@ class StackExchangeClient(
             host = ChatHost.META_STACK_EXCHANGE.hostName
         }
 
-        var response = httpClient.get("https://$host/users/login", cookies)
+        var response = HttpClient.get("https://$host/users/login")
         val fkey = response.parse()
                 .select("input[name='fkey']")
                 .`val`()
 
-        response = httpClient.post("https://$host/users/login", cookies,
+        response = HttpClient.post("https://$host/users/login",
                 "email", email, "password", password, "fkey", fkey)
 
         // Create an account on that site if necessary
@@ -52,7 +50,7 @@ class StackExchangeClient(
 
             val formUrl = "https://$host${formElement.attr("action")}"
 
-            val formResponse = httpClient.post(formUrl, cookies, *formData.toTypedArray())
+            val formResponse = HttpClient.post(formUrl, *formData.toTypedArray())
             if (formResponse.parse().getElementsByClass("js-inbox-button")
                             .first() == null) {
                 throw IllegalStateException("Unable to create an account on $host. " +
@@ -60,7 +58,7 @@ class StackExchangeClient(
             }
         }
 
-        val checkResponse = httpClient.get("https://$originalHost/users/current", cookies)
+        val checkResponse = HttpClient.get("https://$originalHost/users/current")
         if (checkResponse.parse().getElementsByClass("js-inbox-button")
                         .first() == null) {
             throw IllegalStateException("Unable to login to Stack Exchange. " +
@@ -85,7 +83,7 @@ class StackExchangeClient(
             throw ChatOperationException("Cannot join a room you are already in")
         }
 
-        val chatRoom = Room(host, roomId, httpClient, cookies)
+        val chatRoom = Room(host, roomId)
         rooms.add(chatRoom)
         println("Joined room $roomId")
         return chatRoom

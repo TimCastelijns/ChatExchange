@@ -8,7 +8,7 @@ import java.net.URI
 import java.net.URISyntaxException
 import javax.websocket.*
 
-class WebSocket(
+internal class WebSocket(
         private val hostUrlBase: String
 ) : AutoCloseable {
 
