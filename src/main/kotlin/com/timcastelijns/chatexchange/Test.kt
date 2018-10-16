@@ -2,11 +2,19 @@ package com.timcastelijns.chatexchange
 
 import com.timcastelijns.chatexchange.chat.ChatHost
 import com.timcastelijns.chatexchange.chat.StackExchangeClient
+import kotlinx.coroutines.experimental.CoroutineScope
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.launch
 import java.io.FileInputStream
 import java.util.*
+import kotlin.coroutines.experimental.CoroutineContext
 
 fun main(args: Array<String>) {
+    val job = Job()
+    val coroutineContext: CoroutineContext = Dispatchers.IO + job
+    val scope = CoroutineScope(coroutineContext)
+
     val properties = Properties()
     FileInputStream("credentials.properties").use {
         properties.load(it)
@@ -62,10 +70,11 @@ fun main(args: Array<String>) {
         if (message == "q") {
             break
         }
-        launch {
+        scope.launch {
             room.send(message!!)
         }
     }
 
+    job.cancel()
     client.close()
 }
