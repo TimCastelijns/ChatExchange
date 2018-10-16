@@ -2,6 +2,7 @@ package com.timcastelijns.chatexchange.chat
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
+import kotlinx.coroutines.experimental.*
 import org.jsoup.HttpStatusException
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -15,16 +16,21 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import java.util.regex.Pattern
+import kotlin.coroutines.experimental.CoroutineContext
 
 class Room(
         val host: ChatHost,
         val roomId: Int
-) {
+) : CoroutineScope {
+
+    private val job = Job()
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.IO + job
 
     var messagePostedEventListener: ((MessagePostedEvent) -> Unit)? = null
     var messageEditedEventListener: ((MessageEditedEvent) -> Unit)? = null
@@ -198,18 +204,6 @@ class Room(
         return dataWithFkey
     }
 
-    private fun <T> supplyAsync(supplier: Supplier<T>) =
-            CompletableFuture.supplyAsync(supplier, scheduler.executor)
-                    .whenComplete { res, t ->
-                        if (res != null) {
-
-                        }
-
-                        if (t != null) {
-
-                        }
-                    }
-
     fun getUser(userId: Long) = getUsers(listOf(userId))[0]
 
     private fun getUsers(userIds: Iterable<Long>): List<User> {
@@ -280,63 +274,49 @@ class Room(
         }
     }
 
-    fun send(message: String): CompletionStage<Long> {
-        val parts = message.toParts()
-        for (i in 0 until parts.size) {
-            val part = parts[i]
-            supplyAsync(Supplier {
-                val element = post("$hostUrlBase/chats/$roomId/messages/new", "text", part)
-                return@Supplier element.asJsonObject.get("id").asLong
-            })
+    suspend fun send(message: String): Long = async {
+        if (message.length > MAX_CHAT_MESSAGE_LENGTH) {
+            throw ChatOperationException("Cannot send message: it is longer than $MAX_CHAT_MESSAGE_LENGTH characters")
         }
+            val element = post("$hostUrlBase/chats/$roomId/messages/new", "text", message)
+            element.asJsonObject.get("id").asLong
+        }.await()
 
-        val part = parts.last()
-        return supplyAsync(Supplier {
-            val element = post("$hostUrlBase/chats/$roomId/messages/new", "text", part)
-            return@Supplier element.asJsonObject.get("id").asLong
-        })
-    }
-
-    fun uploadImage(path: Path): CompletionStage<String> {
+    suspend fun uploadImage(path: Path): String {
         val inputStream = try {
             Files.newInputStream(path)
         } catch (e: IOException) {
             throw ChatOperationException("Can't open path $path for reading", e)
         }
 
-        return uploadImage(path.fileName.toString(), inputStream).whenComplete { _, _ ->
-            try {
-                inputStream.close()
-            } catch (e: IOException) {
-
-            }
+        return inputStream.use {
+            uploadImage(path.fileName.toString(), inputStream)
         }
     }
 
-    private fun uploadImage(fileName: String, inputStream: InputStream): CompletionStage<String> =
-            supplyAsync(Supplier {
-                val response = try {
-                    HttpClient.postWithFile("$hostUrlBase/upload/image", "filename", fileName, inputStream)
-                } catch (e: IOException) {
-                    throw ChatOperationException("Failed to upload image", e)
-                }
+    private suspend fun uploadImage(fileName: String, inputStream: InputStream): String = async {
+        val response = try {
+            HttpClient.postWithFile("$hostUrlBase/upload/image", "filename", fileName, inputStream)
+        } catch (e: IOException) {
+            throw ChatOperationException("Failed to upload image", e)
+        }
 
-                val html = Jsoup.parse(response.body()).getElementsByTag("script").first().html()
-                val failedUploadMatched = FAILED_UPLOAD_PATTERN.matcher(html)
+        val html = Jsoup.parse(response.body()).getElementsByTag("script").first().html()
+        val failedUploadMatched = FAILED_UPLOAD_PATTERN.matcher(html)
 
-                if (failedUploadMatched.find()) {
-                    throw ChatOperationException(failedUploadMatched.group(1))
-                }
+        if (failedUploadMatched.find()) {
+            throw ChatOperationException(failedUploadMatched.group(1))
+        }
 
-                val successUploadMatcher = SUCCESS_UPLOAD_PATTERN.matcher(html)
-                if (successUploadMatcher.find()) {
-                    return@Supplier successUploadMatcher.group(1)
-                }
+        val successUploadMatcher = SUCCESS_UPLOAD_PATTERN.matcher(html)
+        if (successUploadMatcher.find()) {
+            return@async successUploadMatcher.group(1)
+        }
 
-                throw ChatOperationException("Failed to upload image")
-            })
+        throw ChatOperationException("Failed to upload image")
+    }.await()
 
-    fun replyTo(messageId: Long, message: String) = send(":$messageId $message")
+    suspend fun replyTo(messageId: Long, message: String) = send(":$messageId $message")
 
     fun isEditable(messageId: Long): Boolean {
         try {
@@ -348,46 +328,38 @@ class Room(
         }
     }
 
-    fun delete(messageId: Long) =
-            supplyAsync(Supplier {
-                val result = post("$hostUrlBase/messages/$messageId/delete").asString
-                if (SUCCESS != result) {
-                    throw ChatOperationException("Cannot delete message $messageId for reason: $result")
-                }
-                return@Supplier null
-            })
+    fun delete(messageId: Long) = launch {
+        val result = post("$hostUrlBase/messages/$messageId/delete").asString
+        if (SUCCESS != result) {
+            throw ChatOperationException("Cannot delete message $messageId for reason: $result")
+        }
+    }
 
-    fun toggleStar(messageId: Long) =
-            supplyAsync(Supplier {
-                val result = post("$hostUrlBase/messages/$messageId/star").asString
-                if (SUCCESS != result) {
-                    throw ChatOperationException("Cannot star/unstar message $messageId for reason: $result")
-                }
-                return@Supplier null
-            })
+    fun toggleStar(messageId: Long) = launch {
+        val result = post("$hostUrlBase/messages/$messageId/star").asString
+        if (SUCCESS != result) {
+            throw ChatOperationException("Cannot star/unstar message $messageId for reason: $result")
+        }
+    }
 
-    fun togglePin(messageId: Long) =
-            supplyAsync(Supplier {
-                val result = post("$hostUrlBase/messages/$messageId/owner-star").asString
-                if (SUCCESS != result) {
-                    throw ChatOperationException("Cannot pin/unpin message $messageId for reason: $result")
-                }
-                return@Supplier null
-            })
+    fun togglePin(messageId: Long) = launch {
+        val result = post("$hostUrlBase/messages/$messageId/owner-star").asString
+        if (SUCCESS != result) {
+            throw ChatOperationException("Cannot pin/unpin message $messageId for reason: $result")
+        }
+    }
 
     /**
      * @param accessLevel 'remove' for default, 'read-write' for write and 'read-only' for read.
      */
-    fun setUserAccess(userId: Long, accessLevel: String): CompletionStage<Nothing?> =
-            supplyAsync(Supplier {
-                val result = post("$hostUrlBase/rooms/setuseraccess/$roomId",
-                        "aclUserId", userId.toString(),
-                        "userAccess", accessLevel).asString
-                if (SUCCESS != result) {
-                    throw ChatOperationException("Cannot alter userAccess for reason: $result")
-                }
-                return@Supplier null
-            })
+    fun setUserAccess(userId: Long, accessLevel: String) = launch {
+        val result = post("$hostUrlBase/rooms/setuseraccess/$roomId",
+                "aclUserId", userId.toString(),
+                "userAccess", accessLevel).asString
+        if (SUCCESS != result) {
+            throw ChatOperationException("Cannot alter userAccess for reason: $result")
+        }
+    }
 
     fun leave(quiet: Boolean = true) {
         if (hasLeft) {
@@ -400,6 +372,7 @@ class Room(
     }
 
     private fun close() {
+        job.cancel()
         scheduler.shutDown()
         closeWebSocket()
     }
@@ -410,6 +383,7 @@ class Room(
 
     companion object {
         private const val SUCCESS = "ok"
+        private const val MAX_CHAT_MESSAGE_LENGTH = 500
         private const val EDIT_WINDOW_SECONDS = 115
         private const val WEB_SOCKET_RESTART_SECONDS = 30L
         private const val NUMBER_OF_RETRIES_ON_THROTTLE = 5
