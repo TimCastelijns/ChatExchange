@@ -26,18 +26,6 @@ class Room(
         val roomId: Int
 ) {
 
-    companion object {
-        private const val SUCCESS = "ok"
-        private const val EDIT_WINDOW_SECONDS = 115
-        private const val WEB_SOCKET_RESTART_SECONDS = 30L
-        private const val NUMBER_OF_RETRIES_ON_THROTTLE = 5
-        private val TRY_AGAIN_PATTERN = Pattern.compile("You can perform this action again in (\\d+) seconds")
-        private val CURRENT_USERS_PATTERN = Pattern.compile("\\{id:\\s?(\\d+),")
-        private val FAILED_UPLOAD_PATTERN = Pattern.compile("var error = '(.+)';")
-        private val SUCCESS_UPLOAD_PATTERN = Pattern.compile("var result = '(.+)';")
-        private val MESSAGE_TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneOffset.UTC)
-    }
-
     var messagePostedEventListener: ((MessagePostedEvent) -> Unit)? = null
     var messageEditedEventListener: ((MessageEditedEvent) -> Unit)? = null
     var messageDeletedEventListener: ((MessageDeletedEvent) -> Unit)? = null
@@ -418,6 +406,18 @@ class Room(
 
     private fun closeWebSocket() {
         webSocket.close()
+    }
+
+    companion object {
+        private const val SUCCESS = "ok"
+        private const val EDIT_WINDOW_SECONDS = 115
+        private const val WEB_SOCKET_RESTART_SECONDS = 30L
+        private const val NUMBER_OF_RETRIES_ON_THROTTLE = 5
+        private val TRY_AGAIN_PATTERN = Pattern.compile("You can perform this action again in (\\d+) seconds")
+        private val CURRENT_USERS_PATTERN = Pattern.compile("\\{id:\\s?(\\d+),")
+        private val FAILED_UPLOAD_PATTERN = Pattern.compile("var error = '(.+)';")
+        private val SUCCESS_UPLOAD_PATTERN = Pattern.compile("var result = '(.+)';")
+        private val MESSAGE_TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneOffset.UTC)
     }
 
 }
