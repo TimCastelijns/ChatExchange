@@ -1,3 +1,4 @@
+[![CircleCI](https://circleci.com/gh/TimCastelijns/ChatExchange/tree/master.svg?style=shield)](https://circleci.com/gh/TimCastelijns/ChatExchange/tree/master)
 [![](https://jitpack.io/v/TimCastelijns/ChatExchange.svg)](https://jitpack.io/#TimCastelijns/ChatExchange)
 
 # ChatExchange
