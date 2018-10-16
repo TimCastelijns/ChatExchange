@@ -99,8 +99,9 @@ class Room(
 
         webSocketUrl = "$webSocketUrl?l=$time"
 
-        webSocket = WebSocket(hostUrlBase)
-        webSocket.chatEventListener = { handleChatEvent(it) }
+        webSocket = WebSocket(hostUrlBase, {
+            handleChatEvent(it)
+        })
         webSocket.open(webSocketUrl)
     }
 

@@ -9,15 +9,14 @@ import java.net.URISyntaxException
 import javax.websocket.*
 
 internal class WebSocket(
-        private val hostUrlBase: String
+        private val hostUrlBase: String,
+        private val chatEventListener: ((String) -> Unit),
+        private val clientManager: ClientManager = ClientManager.createClient(JdkClientContainer::class.java.name)
 ) : AutoCloseable {
 
-    private val client: ClientManager = ClientManager.createClient(JdkClientContainer::class.java.name)
     private val configBuilder = ClientEndpointConfig.Builder.create()
 
     private lateinit var webSocketSession: Session
-
-    var chatEventListener: ((String) -> Unit)? = null
 
     init {
         configBuilder.configurator(object : ClientEndpointConfig.Configurator() {
@@ -28,12 +27,12 @@ internal class WebSocket(
             }
         })
 
-        client.properties[ClientProperties.RETRY_AFTER_SERVICE_UNAVAILABLE] = true
+        clientManager.properties[ClientProperties.RETRY_AFTER_SERVICE_UNAVAILABLE] = true
     }
 
     fun open(webSocketUrl: String) {
         try {
-            webSocketSession = client.connectToServer(object : Endpoint() {
+            webSocketSession = clientManager.connectToServer(object : Endpoint() {
                 override fun onOpen(session: Session?, config: EndpointConfig?) {
                     session?.addMessageHandler(String::class.java, ::handleChatEvent)
                 }
@@ -51,8 +50,8 @@ internal class WebSocket(
         }
     }
 
-    fun handleChatEvent(json: String) {
-        chatEventListener?.invoke(json)
+    private fun handleChatEvent(json: String) {
+        chatEventListener.invoke(json)
     }
 
     override fun close() {
