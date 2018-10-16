@@ -1,6 +1,5 @@
 package com.timcastelijns.chatexchange.chat
 
-import com.timcastelijns.chatexchange.chat.ChatHost
 import org.junit.Test
 import kotlin.test.assertEquals
 
