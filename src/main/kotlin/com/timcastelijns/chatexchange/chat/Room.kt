@@ -16,9 +16,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.CompletionStage
 import java.util.concurrent.TimeUnit
-import java.util.function.Supplier
 import java.util.regex.Pattern
 import kotlin.coroutines.experimental.CoroutineContext
 
@@ -51,7 +49,6 @@ class Room(
     private lateinit var fkey: String
     private var hostUrlBase: String = host.baseUrl
 
-    private var hasLeft = false
 
     private var pingableUserIds = listOf<Long>()
     private val currentUserIds = mutableSetOf<Long>()
@@ -362,12 +359,7 @@ class Room(
     }
 
     fun leave(quiet: Boolean = true) {
-        if (hasLeft) {
-            return
-        }
-
         post("$hostUrlBase/chats/leave/$roomId", "quiet", quiet.toString())
-        hasLeft = true
         close()
     }
 
