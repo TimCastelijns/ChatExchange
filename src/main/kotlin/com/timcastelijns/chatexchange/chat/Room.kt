@@ -131,6 +131,12 @@ class Room(
                 is UserMentionedEvent -> userMentionedEventListener?.invoke(event)
                 is MessageRepliedToEvent -> messageRepliedToEventListener?.invoke(event)
                 is AccessLevelChangedEvent -> accessLevelChangedEventListener?.invoke(event)
+                is KickedEvent -> {
+
+                }
+                is MessageEvent -> {
+
+                }
             }
         }
     }
